@@ -1,0 +1,75 @@
+Curvance Time Vault Contract Explained in Simple Terms
+This contract is like a special savings account where you can deposit money (in the form of an ERC20 token called SHMON) to earn rewards over time. Here's how it works:
+
+Main Features
+NFT-Based System: When you deposit money, you get NFTs (digital certificates) representing your share.
+
+Time Lock: Your money is locked for certain periods to earn rewards.
+
+Automatic Compounding: The contract automatically reinvests earnings to grow your money faster.
+
+Bribe System: People can add extra rewards (bribes) to encourage participation.
+
+Key Functions Explained Simply
+1. Joining the Vault
+joinVault(): Deposit SHMON tokens to get NFTs (like buying shares)
+
+swapAndJoin(): Swap other tokens for SHMON and join in one step
+
+swapEthAndJoin(): Swap ETH for SHMON and join in one step
+
+2. Managing Your Investment
+automateCoumpounding(): Automatically reinvests earnings (only works during certain periods)
+
+claimBack(): Withdraw your money + rewards when the time is right
+
+3. Admin Functions
+changeTimePeriod(): Owner can adjust lock periods
+
+changeFees(): Owner can adjust fees
+
+collectFee(): Owner collects platform fees
+
+pauseNft(): Owner can pause NFT transfers
+
+4. Bribe System
+bribe(): Anyone can add extra rewards (in any token) to the pool
+
+5. Helper Functions
+getState(): Checks if it's deposit, earning, or withdrawal time
+
+getNftCount(): Shows how many NFTs exist
+
+getBalanceNft(): Shows your NFT balance and value
+
+The NFT Part (TimeNft Contract)
+The NFTs represent your share in the vault:
+
+They can't be transferred when the system is paused
+
+They have a fixed limit (can't create unlimited)
+
+They give you rights to withdraw your share later
+
+They have royalty fees (5%) if sold on marketplaces
+
+How It Works Step-by-Step
+Deposit Phase: You deposit SHMON tokens and get NFTs
+
+Earning Phase: Your money earns rewards (automatically reinvested)
+
+Withdrawal Phase: You burn NFTs to get your original deposit + rewards
+
+Bribes: Extra rewards are distributed to all participants
+
+Important Notes
+There are fees (1% platform fee, 0.1% swap fee)
+
+Money is locked for set periods
+
+The owner can adjust some settings
+
+Uses Uniswap-like swapping for easy token conversions
+
+This system is designed to reward long-term participation while allowing some flexibility in how you deposit funds (either directly with SHMON or by swapping other tokens/ETH).
+

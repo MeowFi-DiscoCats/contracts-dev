@@ -1,34 +1,21 @@
 # 🏦 CurvanceTimeVault
 
-**CurvanceTimeVault** is a time-locked smart contract vault that allows users to deposit ERC20 tokens or ETH, receive NFTs representing their stake, and later redeem them for principal + yield. It integrates Uniswap-style swaps, ERC4626-based auto-compounding, NFT minting, and bribe distributions.
+**CurvanceTimeVault** is a smart contract vault that allows users to deposit ERC20 tokens or ETH and receive NFTs representing their time-locked stake. Upon maturity, the NFTs can be redeemed for the original deposit plus yield and bribes. It includes auto-compounding via ERC4626, Uniswap-style swap support, and bribe distribution.
 
 ---
 
 ## ✨ Features
 
-- **NFT-based Participation**  
-  Users receive NFTs when joining the vault. These NFTs represent their locked position and are burned upon withdrawal.
-
-- **Token & ETH Support**  
-  Users can:
-  - Deposit ERC20 tokens directly.
-  - Swap other tokens or ETH into the vault token (`SHMON`) via `swapAndJoin` or `swapEthAndJoin`.
-
-- **Yield Compounding via ERC4626**  
-  Deposits are automatically staked into an ERC4626-compatible yield vault, and compounded periodically.
-
-- **Bribe Distribution**  
-  At the end of the vault duration, additional rewards (bribes) are claimable in various ERC20 tokens.
-
-- **Fees**  
-  Supports platform and swap fees configurable by the vault owner.
-
-- **Upgradeable**  
-  Uses OpenZeppelin’s UUPSUpgradeable proxy pattern for upgradeability.
+- **NFT-based Vault Participation**: NFTs represent each user's vault share and lock duration.
+- **Token & ETH Entry**: Join using direct token transfer or swap to the vault token.
+- **ERC4626 Compounding**: Uses an external yield-generating vault.
+- **Bribe Support**: Optional extra rewards in ERC20 tokens.
+- **Flexible Time Windows**: Configurable phases for join, claim, etc.
+- **Upgradeable & Pausable**: UUPS and emergency controls.
 
 ---
 
-## ⚙️ Initialization
+## 🔧 Initialization
 
 ```solidity
 function initialize(
@@ -50,21 +37,35 @@ function initialize(
 ) external initializer
 ```
 
-Initializes the vault with configuration parameters.
+Initializes the contract.
+
+- `_nft`: NFT contract address to represent vault entries.
+- `_vaultToken`: Token used for deposits.
+- `_partnerToken`: Token deposited into ERC4626 vault.
+- `_partnerVault`: Address of ERC4626-compatible yield vault.
+- `_router`: Router for swaps (e.g., Uniswap).
+- `_vaultStart` to `_vaultEnd`: Vault active duration.
+- `_joinEnd`: Last timestamp to join.
+- `_claimStart` to `_claimEnd`: Claimable window.
+- `_minPrice`: Minimum price per NFT.
+- `_maxPerUser`: Max vault share per user.
+- `_totalLimit`: Total max allowed in the vault.
+- `_platformFee`: % fee for platform.
+- `_treasury`: Address where fees are sent.
 
 ---
 
-## 🯞 Joining the Vault
+## 🧾 Vault Entry Functions
 
-### Direct ERC20 Deposit
+### joinVault
 
 ```solidity
 function joinVault(uint256 _nftAmount, address user) external
 ```
 
-Mints vault NFTs and deposits tokens.
+Direct deposit into vault in `vaultToken`. Mints `_nftAmount` NFTs.
 
-### Swap + Join (ERC20)
+### swapAndJoin
 
 ```solidity
 function swapAndJoin(
@@ -75,9 +76,9 @@ function swapAndJoin(
 ) external
 ```
 
-Swaps input token to `vaultToken` and joins the vault.
+Swaps `amountIn` of first token in `path` to `vaultToken`, then joins vault. Requires approval for input token.
 
-### Swap + Join (ETH)
+### swapEthAndJoin
 
 ```solidity
 function swapEthAndJoin(
@@ -87,73 +88,132 @@ function swapEthAndJoin(
 ) external payable
 ```
 
-Swaps ETH to `vaultToken` and joins the vault.
+Swaps ETH into `vaultToken` then joins vault. `path` must start with WETH.
 
 ---
 
 ## 🔁 Compounding
 
+### automateCoumpounding
+
 ```solidity
 function automateCoumpounding() external
 ```
 
-Harvests yield from the partner ERC4626 vault and re-deposits it for higher APY.
+Harvests yield from `partnerVault` and reinvests into the same vault.
 
 ---
 
 ## 💸 Claiming
 
+### claimBack
+
 ```solidity
 function claimBack() external
 ```
 
-Allows users to:
-- Burn vault NFT
-- Receive original deposit + proportional yield
-- Claim bribe tokens (if any)
+Burns user's NFTs and returns:
+- Original deposit
+- Yield earned
+- Bribe tokens (if deposited)
 
 ---
 
 ## 🏆 Bribes
 
+### addBribeToken
+
 ```solidity
 function addBribeToken(address token) external onlyOwner
+```
+
+Adds a token that can be distributed as a bribe.
+
+### removeBribeToken
+
+```solidity
 function removeBribeToken(address token) external onlyOwner
+```
+
+Removes bribe token from list.
+
+### depositBribe
+
+```solidity
 function depositBribe(address token, uint256 amount) external
 ```
 
-Bribe tokens are optional ERC20 rewards distributed at claim time.
+Deposits `amount` of bribe `token`. Must be in `bribeTokens` list.
 
 ---
 
-## 📊 Fees
+## 🧮 Admin Controls
 
-- `platformFee` — % of the yield sent to `treasury`
-- `swapFee` — Optional extra fee on swap-based joins
+### pause / unpause
+
+```solidity
+function pause() external onlyOwner
+function unpause() external onlyOwner
+```
+
+Emergency pause/unpause vault functions.
+
+### updateRouter
+
+```solidity
+function updateRouter(address newRouter) external onlyOwner
+```
+
+Changes swap router.
+
+### updatePartnerVault
+
+```solidity
+function updatePartnerVault(address newVault) external onlyOwner
+```
+
+Changes ERC4626 vault.
+
+### updatePlatformFee / updateSwapFee
 
 ```solidity
 function updatePlatformFee(uint256 newFee) external onlyOwner
 function updateSwapFee(uint256 newFee) external onlyOwner
 ```
 
+Update platform fee or swap fee percentages.
+
+### withdrawStuckToken
+
+```solidity
+function withdrawStuckToken(address token) external onlyOwner
+```
+
+Rescues stuck ERC20 tokens.
+
 ---
 
-## 🔐 Admin Functions
+## 🧾 Events
 
-- `pause()` / `unpause()` — Emergency stop for key vault functions.
-- `updateRouter()` — Change the swap router (e.g., Uniswap).
-- `updatePartnerVault()` — Change the ERC4626 yield vault.
-- `withdrawStuckToken()` — Rescue stuck tokens.
+```solidity
+event VaultJoined(address indexed user, uint256 nftAmount, uint256 totalValue);
+event Claimed(address indexed user, uint256 amountReturned);
+event BribeDeposited(address indexed token, uint256 amount);
+event Compounded(uint256 yield);
+event VaultPaused();
+event VaultUnpaused();
+```
 
 ---
 
-## 🧱 Tech Stack
+## 📊 Variables
 
-- Solidity
-- ERC20, ERC721
-- ERC4626 (Tokenized Vault Standard)
-- OpenZeppelin Contracts (UUPSUpgradeable, Pausable, Ownable)
-- Uniswap V2/V3 style router support
+- `vaultToken` - Token accepted in vault.
+- `partnerVault` - ERC4626 yield vault.
+- `vaultStart`, `vaultEnd`, `claimStart`, `claimEnd` - Time gates.
+- `platformFee`, `swapFee` - Fee percentages.
+- `totalDeposited`, `userDeposits` - Tracking deposits.
+- `bribeTokens` - List of bribe ERC20 tokens.
 
 ---
 
